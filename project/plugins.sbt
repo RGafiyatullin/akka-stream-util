@@ -1,0 +1,2 @@
+
+logLevel := sbt.Level.Warn
