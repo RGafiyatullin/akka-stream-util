@@ -30,11 +30,19 @@ object Context {
       Internals(state, inlets(shape), outlets(shape))
   }
 
-  final case class Internals[Stg <: Stage[Stg]] private (
+  final case class Internals[Stg <: Stage[Stg]] (
     state: Stg#State,
-    inlets: Map[Inlet[_], InletState],
-    outlets: Map[Outlet[_], OutletState])
+    private val inlets: Map[Inlet[_], InletState],
+    private val outlets: Map[Outlet[_], OutletState],
+    stageComplete: Boolean = false,
+    stageFailureOption: Option[Throwable] = None)
   {
+    def completeStage(): Internals[Stg] =
+      copy(stageComplete = true)
+
+    def failStage(reason: Throwable): Internals[Stg] =
+      copy(stageFailureOption = Some(reason))
+
     def mapInlets(f: (Inlet[_], InletState) => InletState): Internals[Stg] =
       copy(inlets = inlets.map {
         case (key, value) =>
@@ -76,41 +84,8 @@ object Context {
 }
 
 trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
-  def internals: Context.Internals[Stg]
-  def withInternals(i: Context.Internals[Stg]): Self
-
-  def mapInternals(f: Context.Internals[Stg] => Context.Internals[Stg]): Self =
-    withInternals(f(internals))
-
-  def mapFoldInternals[T](f: Context.Internals[Stg] => (T, Context.Internals[Stg])): (T, Self) = {
-    val (ret, internalsNext) = f(internals)
-    (ret, withInternals(internalsNext))
-  }
-
   def withState(s: Stg#State): Self =
     mapInternals(_.withState(s))
-
-  def state: Stg#State =
-    internals.state
-
-  private def mapFoldInlet[T](key: Inlet[_])(f: PartialFunction[InletState, (T, InletState)]): (T, Self) =
-    mapFoldInternals(_.mapFoldInlet(key, f))
-
-  private def mapFoldOutlet[T](key: Outlet[_])(f: PartialFunction[OutletState, (T, OutletState)]): (T, Self) = {
-    mapFoldInternals(_.mapFoldOutlet(key, f))
-  }
-
-
-  private def checkInletState(key: Inlet[_])(f: InletState => Boolean): Boolean =
-    mapFoldInlet(key){
-      case s => (f(s), s)
-    }._1
-
-  private def checkOutletState(key: Outlet[_])(f: OutletState => Boolean): Boolean =
-    mapFoldOutlet(key){
-      case s => (f(s), s)
-    }._1
-
 
   def isEmpty(inlet: Inlet[_]): Boolean =
     checkInletState(inlet)(_ == InletEmpty)
@@ -130,6 +105,22 @@ trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def isAvailable(outlet: Outlet[_]): Boolean =
     checkOutletState(outlet)(_ == OutletAvailable)
 
+
+
+  def completeStage(): Self =
+    mapInternals(_.completeStage())
+
+  def stageComplete: Boolean =
+    internals.stageComplete
+
+  def failStage(reason: Throwable): Self =
+    mapInternals(_.failStage(reason))
+
+  def stageFailed: Boolean =
+    internals.stageFailureOption.isDefined
+
+  def stageFailureOption: Option[Throwable] =
+    internals.stageFailureOption
 
 
   def pull(inlet: Inlet[_]): Self =
@@ -155,5 +146,38 @@ trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
       case InletAvailalbe(_) =>
         (NotUsed, InletEmpty)
     }._2
+
+
+
+  def internals: Context.Internals[Stg]
+  def withInternals(i: Context.Internals[Stg]): Self
+
+  def mapInternals(f: Context.Internals[Stg] => Context.Internals[Stg]): Self =
+    withInternals(f(internals))
+
+  private def mapFoldInternals[T](f: Context.Internals[Stg] => (T, Context.Internals[Stg])): (T, Self) = {
+    val (ret, internalsNext) = f(internals)
+    (ret, withInternals(internalsNext))
+  }
+
+  private def mapFoldInlet[T](key: Inlet[_])(f: PartialFunction[InletState, (T, InletState)]): (T, Self) =
+    mapFoldInternals(_.mapFoldInlet(key, f))
+
+  private def mapFoldOutlet[T](key: Outlet[_])(f: PartialFunction[OutletState, (T, OutletState)]): (T, Self) = {
+    mapFoldInternals(_.mapFoldOutlet(key, f))
+  }
+
+
+  private def checkInletState(key: Inlet[_])(f: InletState => Boolean): Boolean =
+    mapFoldInlet(key){
+      case s => (f(s), s)
+    }._1
+
+  private def checkOutletState(key: Outlet[_])(f: OutletState => Boolean): Boolean =
+    mapFoldOutlet(key){
+      case s => (f(s), s)
+    }._1
+
+
 
 }

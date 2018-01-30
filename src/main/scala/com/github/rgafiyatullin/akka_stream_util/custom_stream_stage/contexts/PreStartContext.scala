@@ -8,7 +8,7 @@ object PreStartContext {
     PreStartContext(internals)
 }
 
-final case class PreStartContext[Stg <: Stage[Stg]] private(internals: Internals[Stg])
+final case class PreStartContext[Stg <: Stage[Stg]](internals: Internals[Stg])
   extends Context[PreStartContext[Stg], Stg]
 {
   type Self = PreStartContext[Stg]

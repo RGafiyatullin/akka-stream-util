@@ -13,6 +13,15 @@ object Stage {
 
     def inletOnPush(ctx: InletPushedContext[Stg]): InletPushedContext[Stg] = ctx
     def outletOnPull(ctx: OutletPulledContext[Stg]): OutletPulledContext[Stg] = ctx
+
+    def inletOnUpstreamFinish(ctx: InletFinishedContext[Stg]): InletFinishedContext[Stg] =
+      ctx.completeStage()
+
+    def inletOnUpstreamFailure(ctx: InletFailedContext[Stg]): InletFailedContext[Stg] =
+      ctx.failStage(ctx.reason)
+
+    def outletOnDownstreamFinished(ctx: OutletFinishedContext[Stg]): OutletFinishedContext[Stg] =
+      ctx.completeStage()
   }
 }
 

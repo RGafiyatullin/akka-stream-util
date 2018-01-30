@@ -12,7 +12,7 @@ object OutletPulledContext {
     })._2)
 }
 
-final case class OutletPulledContext[Stg <: Stage[Stg]] private (outlet: Outlet[_], internals: Context.Internals[Stg])
+final case class OutletPulledContext[Stg <: Stage[Stg]](outlet: Outlet[_], internals: Context.Internals[Stg])
   extends Context[OutletPulledContext[Stg], Stg]
 {
   type Self = OutletPulledContext[Stg]

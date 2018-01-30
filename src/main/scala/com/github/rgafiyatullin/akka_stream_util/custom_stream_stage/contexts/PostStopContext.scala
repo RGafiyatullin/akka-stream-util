@@ -8,7 +8,7 @@ object PostStopContext {
     PostStopContext(internals)
 }
 
-final case class PostStopContext[Stg <: Stage[Stg]] private(internals: Internals[Stg])
+final case class PostStopContext[Stg <: Stage[Stg]](internals: Internals[Stg])
   extends Context[PostStopContext[Stg], Stg]
 {
   type Self = PostStopContext[Stg]

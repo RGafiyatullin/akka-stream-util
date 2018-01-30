@@ -11,7 +11,7 @@ private object Runner {
     var currentContextInternals: Context.Internals[Stg] =
       Context.Internals.create[Stg](initialState, stage.shape)
 
-    def applyContext[Ctx <: Context[Ctx, Stg]](ctx: Ctx): Unit =
+    def applyContext[Ctx <: Context[Ctx, Stg]](ctx: Ctx): Unit = {
       currentContextInternals =
         ctx.mapInternals(_
           .mapInlets {
@@ -32,6 +32,17 @@ private object Runner {
           })
           .internals
 
+        (ctx.stageFailureOption, ctx.stageComplete) match {
+          case (None, false) => ()
+
+          case (Some(reason), _) =>
+            failStage(reason)
+
+          case (_, true) =>
+            completeStage()
+        }
+      }
+
     override def preStart(): Unit =
       applyContext(
         currentContextInternals.state.preStart(
@@ -48,10 +59,25 @@ private object Runner {
           applyContext(
             currentContextInternals.state.inletOnPush(
               InletPushedContext.create(inlet, grab(inlet), currentContextInternals)))
+
+        override def onUpstreamFinish(): Unit =
+          applyContext(
+            currentContextInternals.state.inletOnUpstreamFinish(
+              InletFinishedContext.create(inlet, currentContextInternals)))
+
+        override def onUpstreamFailure(reason: Throwable): Unit =
+          applyContext(
+            currentContextInternals.state.inletOnUpstreamFailure(
+              InletFailedContext.create(inlet, reason, currentContextInternals)))
       })
 
     for (outlet <- stage.shape.outlets)
       setHandler(outlet, new OutHandler {
+        override def onDownstreamFinish(): Unit =
+          applyContext(
+            currentContextInternals.state.outletOnDownstreamFinished(
+              OutletFinishedContext.create(outlet, currentContextInternals)))
+
         override def onPull(): Unit =
           applyContext(
             currentContextInternals.state.outletOnPull(
