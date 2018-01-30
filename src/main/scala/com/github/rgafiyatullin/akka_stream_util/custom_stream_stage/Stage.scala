@@ -1,7 +1,7 @@
 package com.github.rgafiyatullin.akka_stream_util.custom_stream_stage
 
-import akka.stream.{Attributes, Graph}
-import akka.stream.stage.{GraphStageLogic, GraphStageWithMaterializedValue}
+import akka.stream.{Attributes, Materializer}
+import akka.stream.stage.{GraphStageWithMaterializedValue, StageLogging, TimerGraphStageLogic}
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts._
 
 object Stage {
@@ -22,17 +22,30 @@ object Stage {
 
     def outletOnDownstreamFinished(ctx: OutletFinishedContext[Stg]): OutletFinishedContext[Stg] =
       ctx.completeStage()
+
+    def receiveEnabled: Boolean = false
+    def receive(ctx: ReceiveContext.NotReplied[Stg]): ReceiveContext[_, Stg] = ctx
+  }
+
+  trait Runner[Stg <: Stage[Stg]] extends GraphStageWithMaterializedValue[Stg#Shape, Stg#MatValue]
+  trait RunnerLogic
+    extends TimerGraphStageLogic
+      with StageLogging
+  {
+    override def materializer: Materializer = super.materializer
   }
 }
 
 trait Stage[Self <: Stage[Self]] {
+  this: Self =>
+
   type Shape <: Stage.Shape
   type State <: Stage.State[Self]
   type MatValue
 
   def shape: Shape
-  def initialStateAndMatValue(logic: GraphStageLogic, inheritedAttributes: Attributes): (State, MatValue)
+  def initialStateAndMatValue(logic: Stage.RunnerLogic, inheritedAttributes: Attributes): (State, MatValue)
 
   def toGraph: GraphStageWithMaterializedValue[Self#Shape, Self#MatValue] =
-    new Runner[Self](this.asInstanceOf[Self])
+    new RunnerImpl[Self](this)
 }

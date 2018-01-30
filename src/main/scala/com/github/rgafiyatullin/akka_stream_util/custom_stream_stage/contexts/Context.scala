@@ -3,9 +3,14 @@ package com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts
 import java.util.NoSuchElementException
 
 import akka.NotUsed
+import akka.actor.ActorRef
+import akka.event.LoggingAdapter
 import akka.stream.{Inlet, Outlet, Shape}
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts.Context._
+
+import scala.concurrent.ExecutionContext
+import scala.util.Try
 
 object Context {
   sealed trait InletState
@@ -26,14 +31,15 @@ object Context {
     private def outlets(shape: Shape): Map[Outlet[_], OutletState] =
       shape.outlets.map(_ -> OutletFlushed).toMap
 
-    def create[Stg <: Stage[Stg]](state: Stg#State, shape: Stg#Shape): Internals[Stg] =
-      Internals(state, inlets(shape), outlets(shape))
+    def create[Stg <: Stage[Stg]](state: Stg#State, shape: Stg#Shape, gsl: Stage.RunnerLogic): Internals[Stg] =
+      Internals(state, inlets(shape), outlets(shape), gsl)
   }
 
   final case class Internals[Stg <: Stage[Stg]] (
     state: Stg#State,
     private val inlets: Map[Inlet[_], InletState],
     private val outlets: Map[Outlet[_], OutletState],
+    graphStageLogic: Stage.RunnerLogic,
     stageComplete: Boolean = false,
     stageFailureOption: Option[Throwable] = None)
   {
@@ -84,6 +90,8 @@ object Context {
 }
 
 trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
+  def onApply(): Unit = ()
+
   def withState(s: Stg#State): Self =
     mapInternals(_.withState(s))
 
@@ -105,6 +113,12 @@ trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def isAvailable(outlet: Outlet[_]): Boolean =
     checkOutletState(outlet)(_ == OutletAvailable)
 
+
+  def stageActorRefOption: Option[ActorRef] =
+    Try(stageActorRef).toOption
+
+  def stageActorRef: ActorRef =
+    internals.graphStageLogic.stageActor.ref
 
 
   def completeStage(): Self =
@@ -148,6 +162,12 @@ trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
     }._2
 
 
+
+  def log: LoggingAdapter =
+    internals.graphStageLogic.log
+
+  def executionContext: ExecutionContext =
+    internals.graphStageLogic.materializer.executionContext
 
   def internals: Context.Internals[Stg]
   def withInternals(i: Context.Internals[Stg]): Self

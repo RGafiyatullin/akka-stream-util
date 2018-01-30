@@ -9,7 +9,7 @@ import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts._
 import scala.collection.immutable.Queue
 import scala.concurrent.{Future, Promise}
 
-object Playground {
+object IdentityFlowAndFoldSinkTest {
   object IdentityStage {
     case class StageState[Item](shape: FlowShape[Item, Item]) extends State[IdentityStage[Item]] {
       override def outletOnPull(ctx: OutletPulledContext[IdentityStage[Item]]): OutletPulledContext[IdentityStage[Item]] = {
@@ -38,7 +38,7 @@ object Playground {
       FlowShape.of(inlet, outlet)
 
     override def initialStateAndMatValue
-      (logic: GraphStageLogic, inheritedAttributes: Attributes)
+      (logic: Stage.RunnerLogic, inheritedAttributes: Attributes)
     : (State, MatValue) =
       (IdentityStage.StageState(shape), NotUsed)
   }
@@ -49,7 +49,8 @@ object Playground {
       shape: SinkShape[Item],
       f: (Acc, Item) => Acc,
       acc: Acc,
-      resultPromise: Promise[Acc])
+      resultPromise: Promise[Acc],
+      logic: Stage.RunnerLogic)
         extends Stage.State[FoldStage[Acc, Item]]
     {
       override def preStart
@@ -94,15 +95,15 @@ object Playground {
       SinkShape.of(inlet)
 
     override def initialStateAndMatValue
-      (logic: GraphStageLogic, inheritedAttributes: Attributes)
+      (logic: Stage.RunnerLogic, inheritedAttributes: Attributes)
     : (FoldStage.State[Acc, Item], Future[Acc]) = {
-      val state = FoldStage.State[Acc, Item](shape, f, zero, Promise())
+      val state = FoldStage.State[Acc, Item](shape, f, zero, Promise(), logic)
       (state, state.resultPromise.future)
     }
   }
 }
 
-final class Playground extends TestBase {
+final class IdentityFlowAndFoldSinkTest extends TestBase {
   def checkIdentityStage(identityStage: Flow[Int, Int, _]): Future[Any] =
     withMaterializer { mat =>
       futureOk {
@@ -150,7 +151,7 @@ final class Playground extends TestBase {
     }))
 
   it should "work if defined as Flow.fromGraph(new Playground.IdentityStage[Int].toGraph)" in
-    checkIdentityStage(Flow.fromGraph(new Playground.IdentityStage[Int].toGraph))
+    checkIdentityStage(Flow.fromGraph(new IdentityFlowAndFoldSinkTest.IdentityStage[Int].toGraph))
 
 
   "fold-sink stage" should "work if defined as Sink.fold(0)(_ + _)" in
@@ -193,5 +194,5 @@ final class Playground extends TestBase {
     }))
 
   it should "work if defined as Sink.fromGraph(new Playground.FoldStage[Int, Int](0, _ + _).toGraph)" in
-    checkFoldStage(Sink.fromGraph(new Playground.FoldStage[Int, Int](0, _ + _).toGraph))
+    checkFoldStage(Sink.fromGraph(new IdentityFlowAndFoldSinkTest.FoldStage[Int, Int](0, _ + _).toGraph))
 }
