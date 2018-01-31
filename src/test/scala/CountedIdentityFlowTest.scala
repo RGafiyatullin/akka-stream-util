@@ -60,11 +60,14 @@ object CountedIdentityFlowTest {
       : ReceiveContext[_, CountedIdentityFlow[Item]] =
         ctx.message match {
           case messages.Get =>
-            ctx.reply(Status.Success(count))
+            ctx
+              .reply(Status.Success(count))
+              .handled
 
           case messages.Reset =>
             ctx
               .reply(Status.Success(count))
+              .handled
               .withState(withCount(0))
 
           case unexpected =>

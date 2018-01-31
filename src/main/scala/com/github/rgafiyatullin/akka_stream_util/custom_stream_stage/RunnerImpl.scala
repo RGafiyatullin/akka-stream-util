@@ -20,6 +20,10 @@ private object RunnerImpl {
         case (sender, message) =>
           val ctxIn = ReceiveContext.create(sender, message, currentContextInternals)
           val ctxOut = currentContextInternals.state.receive(ctxIn)
+
+          if (!ctxOut.isHandled)
+            log.warning("Unhandled inbound message {} from {}", message, sender)
+
           applyContext(ctxOut)
       }
     }
