@@ -89,7 +89,7 @@ object Context {
   }
 }
 
-trait Context[Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
+trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def onApply(): Unit = ()
 
   def withState(s: Stg#State): Self =

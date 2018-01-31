@@ -57,7 +57,7 @@ object CountedIdentityFlowTest {
 
       override def receive
         (ctx: ReceiveContext.NotReplied[CountedIdentityFlow[Item]])
-      : ReceiveContext[_, CountedIdentityFlow[Item]] =
+      : ReceiveContext[CountedIdentityFlow[Item]] =
         ctx.message match {
           case messages.Get =>
             ctx
