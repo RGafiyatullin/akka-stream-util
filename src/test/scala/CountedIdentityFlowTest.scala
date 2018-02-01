@@ -1,4 +1,5 @@
 
+import akka.Done
 import akka.actor.{ActorRef, Status}
 import akka.stream._
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
@@ -54,11 +55,10 @@ object CountedIdentityFlowTest {
           .drop(shape.in)
           .withState(mapCount(_ + 1))
 
-
       override def receive
         (ctx: ReceiveContext.NotReplied[CountedIdentityFlow[Item]])
       : ReceiveContext[CountedIdentityFlow[Item]] =
-        ctx.message match {
+        ctx.handleWith {
           case messages.Get =>
             ctx
               .reply(Status.Success(count))
@@ -69,10 +69,6 @@ object CountedIdentityFlowTest {
               .reply(Status.Success(count))
               .handled
               .withState(withCount(0))
-
-          case unexpected =>
-            ctx.log.warning("Unexpected message: {}", unexpected)
-            ctx
         }
     }
 

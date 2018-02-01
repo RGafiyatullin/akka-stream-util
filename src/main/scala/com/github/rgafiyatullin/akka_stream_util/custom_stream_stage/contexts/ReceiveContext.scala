@@ -11,7 +11,7 @@ object ReceiveContext {
     NotReplied(sender, message, isHandled = false, internals)
 
   type Receive[Stg <: Stage[Stg]] =
-    Stg#State => NotReplied[Stg] => ReceiveContext[Stg]
+    PartialFunction[Any, ReceiveContext[Stg]]
 
   final case class AttemptToHandleTwice() extends Exception
 
@@ -20,7 +20,7 @@ object ReceiveContext {
     message: Any,
     isHandled: Boolean,
     internals: Context.Internals[Stg])
-      extends ReceiveContext[Stg]
+      extends TypedReceiveContext[NotReplied[Stg], Stg]
   {
     override def withInternals(i: Context.Internals[Stg]): NotReplied[Stg] =
       copy(internals = i)
@@ -34,7 +34,7 @@ object ReceiveContext {
     override def unhandled: NotReplied[Stg] =
       copy(isHandled = false)
 
-    def handleWith(f: PartialFunction[Any, ReceiveContext[Stg]]): ReceiveContext[Stg] =
+    def handleWith(f: Receive[Stg]): ReceiveContext[Stg] =
       if      (isHandled)              failStage(AttemptToHandleTwice())
       else if (f.isDefinedAt(message)) f(message).handled
       else                             this.unhandled
@@ -46,7 +46,7 @@ object ReceiveContext {
     requestMessage: Any,
     isHandled: Boolean,
     internals: Context.Internals[Stg])
-      extends ReceiveContext[Stg]
+      extends TypedReceiveContext[Replied[Stg], Stg]
   {
     override def onApply(): Unit =
       replyTo ! replyWith
@@ -65,11 +65,19 @@ object ReceiveContext {
   }
 }
 
-trait ReceiveContext[Stg <: Stage[Stg]]
-  extends Context[ReceiveContext[Stg], Stg]
+trait TypedReceiveContext[+Concrete <: TypedReceiveContext[Concrete, Stg], Stg <: Stage[Stg]]
+  extends Context[Concrete, Stg]
+    with ReceiveContext[Stg]
 {
+  override def handled: Concrete
+  override def unhandled: Concrete
+  override def isHandled: Boolean
+}
+
+trait ReceiveContext[Stg <: Stage[Stg]] extends Context[ReceiveContext[Stg], Stg] {
   def handled: ReceiveContext[Stg]
   def unhandled: ReceiveContext[Stg]
   def isHandled: Boolean
 }
+
 

@@ -24,7 +24,8 @@ object Stage {
       ctx.completeStage()
 
     def receiveEnabled: Boolean = false
-    def receive(ctx: ReceiveContext.NotReplied[Stg]): ReceiveContext[Stg] = ctx
+    def receive(ctx: ReceiveContext.NotReplied[Stg]): ReceiveContext[Stg] =
+      ctx.handleWith(Map.empty)
   }
 
   trait Runner[Stg <: Stage[Stg]] extends GraphStageWithMaterializedValue[Stg#Shape, Stg#MatValue]
