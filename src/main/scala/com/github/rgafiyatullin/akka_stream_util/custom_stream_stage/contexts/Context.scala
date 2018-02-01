@@ -21,8 +21,12 @@ object Context {
 
   sealed trait OutletState
   case object OutletFlushed extends OutletState
-  final case class OutletPushed(value: Any) extends OutletState
+  final case class OutletToPush(value: Any) extends OutletState
   case object OutletAvailable extends OutletState
+  final case class OutletToFail(reason: Throwable) extends OutletState
+  final case class OutletFailed(reason: Throwable) extends OutletState
+  case object OutletToComplete extends OutletState
+  case object OutletCompleted extends OutletState
 
   object Internals {
     private def inlets(shape: Shape): Map[Inlet[_], InletState] =
@@ -108,10 +112,16 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
     checkOutletState(outlet)(_ == OutletFlushed)
 
   def isPushed(outlet: Outlet[_]): Boolean =
-    checkOutletState(outlet)(_.isInstanceOf[OutletPushed])
+    checkOutletState(outlet)(_.isInstanceOf[OutletToPush])
 
   def isAvailable(outlet: Outlet[_]): Boolean =
     checkOutletState(outlet)(_ == OutletAvailable)
+
+  def isCompleted(outlet: Outlet[_]): Boolean =
+    checkOutletState(outlet)(_ == OutletCompleted)
+
+  def isFailed(outlet: Outlet[_]): Boolean =
+    checkOutletState(outlet)(_.isInstanceOf[OutletFailed])
 
 
   def stageActorRefOption: Option[ActorRef] =
@@ -137,6 +147,26 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
     internals.stageFailureOption
 
 
+  def complete(outlet: Outlet[_]): Self =
+    mapFoldOutlet(outlet){
+      case outletState if Set[Context.OutletState](
+          Context.OutletAvailable,
+          Context.OutletFlushed
+        ).contains(outletState)
+      =>
+        (NotUsed, Context.OutletToComplete)
+    }._2
+
+  def fail(outlet: Outlet[_], reason: Throwable): Self =
+    mapFoldOutlet(outlet) {
+      case outletState if Set[Context.OutletState](
+          Context.OutletAvailable,
+          Context.OutletFlushed
+        ).contains(outletState)
+      =>
+        (NotUsed, Context.OutletToFail(reason))
+    }._2
+
   def pull(inlet: Inlet[_]): Self =
     mapFoldInlet(inlet){
       case Context.InletEmpty =>
@@ -146,7 +176,7 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def push[T](outlet: Outlet[T], value: T): Self =
     mapFoldOutlet(outlet){
       case Context.OutletAvailable =>
-        (NotUsed, Context.OutletPushed(value))
+        (NotUsed, Context.OutletToPush(value))
     }._2
 
   def peek[T](inlet: Inlet[T]): T =
@@ -160,7 +190,6 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
       case InletAvailalbe(_) =>
         (NotUsed, InletEmpty)
     }._2
-
 
 
   def log: LoggingAdapter =

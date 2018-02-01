@@ -40,9 +40,17 @@ private object RunnerImpl {
               asIs
           }
           .mapOutlets {
-            case (outlet, Context.OutletPushed(value)) =>
+            case (outlet, Context.OutletToPush(value)) =>
               push(outlet.as[Any], value)
               Context.OutletFlushed
+
+            case (outlet, Context.OutletToFail(reason)) =>
+              fail(outlet, reason)
+              Context.OutletFailed(reason)
+
+            case (outlet, Context.OutletToComplete) =>
+              complete(outlet)
+              Context.OutletCompleted
 
             case (_, asIs) =>
               asIs
