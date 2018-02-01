@@ -52,6 +52,16 @@ private object RunnerImpl {
               complete(outlet)
               Context.OutletCompleted
 
+            case (outlet, Context.OutletToPushThenComplete(value)) =>
+              push(outlet.as[Any], value)
+              complete(outlet)
+              Context.OutletCompleted
+
+            case (outlet, Context.OutletToPushThenFail(value, reason)) =>
+              push(outlet.as[Any], value)
+              fail(outlet, reason)
+              Context.OutletFailed(reason)
+
             case (_, asIs) =>
               asIs
           }

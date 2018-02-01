@@ -27,6 +27,8 @@ object Context {
   final case class OutletFailed(reason: Throwable) extends OutletState
   case object OutletToComplete extends OutletState
   case object OutletCompleted extends OutletState
+  final case class OutletToPushThenComplete(value: Any) extends OutletState
+  final case class OutletToPushThenFail(value: Any, reason: Throwable) extends OutletState
 
   object Internals {
     private def inlets(shape: Shape): Map[Inlet[_], InletState] =
@@ -149,6 +151,9 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
   def complete(outlet: Outlet[_]): Self =
     mapFoldOutlet(outlet){
+      case Context.OutletToPush(value) =>
+        (NotUsed, Context.OutletToPushThenComplete(value))
+
       case outletState if Set[Context.OutletState](
           Context.OutletAvailable,
           Context.OutletFlushed
@@ -159,6 +164,9 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
   def fail(outlet: Outlet[_], reason: Throwable): Self =
     mapFoldOutlet(outlet) {
+      case Context.OutletToPush(value) =>
+        (NotUsed, Context.OutletToPushThenFail(value, reason))
+
       case outletState if Set[Context.OutletState](
           Context.OutletAvailable,
           Context.OutletFlushed
