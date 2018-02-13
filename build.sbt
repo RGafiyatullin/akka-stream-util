@@ -4,6 +4,11 @@ organization := "com.github.rgafiyatullin"
 
 version := "0.1.5.1"
 
+publishTo := {
+  Some("releases"  at "https://artifactory.wgdp.io:443/xmppcs-maven-releases/")
+}
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials.wg-domain")
+
 scalaVersion := "2.12.4"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
