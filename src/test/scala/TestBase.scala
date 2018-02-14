@@ -11,6 +11,8 @@ trait TestBase extends FlatSpec with Matchers with ScalaFutures {
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(Span(100, Milliseconds), Span(10, Milliseconds))
 
+  def futureWaitTimeout: FiniteDuration = 5.seconds
+
   def withActorSystem[T](f: ActorSystem => Future[T]): Future[T] = {
     val actorSystem = ActorSystem()
     try f(actorSystem)
@@ -27,7 +29,7 @@ trait TestBase extends FlatSpec with Matchers with ScalaFutures {
     }
 
   def futureOk[T](f: Future[T]): Future[T] = {
-    val _ = Await.result(f, 5.seconds)
+    val _ = Await.result(f, futureWaitTimeout)
     f
   }
 }

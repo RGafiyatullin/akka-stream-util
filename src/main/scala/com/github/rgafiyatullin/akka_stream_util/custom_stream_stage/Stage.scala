@@ -20,7 +20,7 @@ object Stage {
     def inletOnUpstreamFailure(ctx: InletFailedContext[Stg]): InletFailedContext[Stg] =
       ctx.failStage(ctx.reason)
 
-    def outletOnDownstreamFinished(ctx: OutletFinishedContext[Stg]): OutletFinishedContext[Stg] =
+    def outletOnDownstreamFinish(ctx: OutletFinishedContext[Stg]): OutletFinishedContext[Stg] =
       ctx.completeStage()
 
     def receiveEnabled: Boolean = false

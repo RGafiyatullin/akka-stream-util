@@ -28,6 +28,12 @@ object ReceiveContext {
     def reply(response: Status.Status): Replied[Stg] =
       Replied(sender, response, message, isHandled, internals)
 
+    def replySuccess(positiveResponse: Any): Replied[Stg] =
+      reply(Status.Success(positiveResponse))
+
+    def replyFailure(reason: Throwable): Replied[Stg] =
+      reply(Status.Failure(reason))
+
     override def handled: NotReplied[Stg] =
       copy(isHandled = true)
 

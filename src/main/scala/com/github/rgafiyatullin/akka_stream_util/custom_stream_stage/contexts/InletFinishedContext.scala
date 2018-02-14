@@ -1,11 +1,16 @@
 package com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts
 
+import akka.NotUsed
 import akka.stream.Inlet
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
 
 object InletFinishedContext {
   def create[Stg <: Stage[Stg]](inlet: Inlet[_], internals: Context.Internals[Stg]) =
-    InletFinishedContext(internals, inlet)
+    InletFinishedContext(
+      internals.mapFoldInlet(inlet, {
+        case _ => (NotUsed, Context.InletCompleted)
+      })._2,
+      inlet)
 
 }
 

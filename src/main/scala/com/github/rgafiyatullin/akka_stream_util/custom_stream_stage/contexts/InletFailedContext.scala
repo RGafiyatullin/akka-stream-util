@@ -1,5 +1,6 @@
 package com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts
 
+import akka.NotUsed
 import akka.stream.Inlet
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
 
@@ -9,7 +10,12 @@ object InletFailedContext {
      reason: Throwable,
      internals: Context.Internals[Stg])
   : InletFailedContext[Stg] =
-    InletFailedContext(internals, reason, inlet)
+    InletFailedContext(
+      internals.mapFoldInlet(inlet, {
+        case _ =>
+          (NotUsed, Context.InletFailed(reason))
+      })._2,
+      reason, inlet)
 }
 
 final case class InletFailedContext[Stg <: Stage[Stg]] (

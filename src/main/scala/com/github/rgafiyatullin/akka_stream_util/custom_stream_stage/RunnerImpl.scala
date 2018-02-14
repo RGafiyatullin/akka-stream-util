@@ -121,7 +121,7 @@ private object RunnerImpl {
       setHandler(outlet, new OutHandler {
         override def onDownstreamFinish(): Unit =
           applyContext(
-            currentContextInternals.state.outletOnDownstreamFinished(
+            currentContextInternals.state.outletOnDownstreamFinish(
               OutletFinishedContext.create(outlet, currentContextInternals)))
 
         override def onPull(): Unit =

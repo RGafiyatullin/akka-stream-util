@@ -18,6 +18,8 @@ object Context {
   case object InletToPull extends InletState
   case object InletPulled extends InletState
   final case class InletAvailalbe(value: Any) extends InletState
+  case object InletCompleted extends InletState
+  final case class InletFailed(reason: Throwable) extends InletState
 
   sealed trait OutletState
   case object OutletFlushed extends OutletState
@@ -101,6 +103,9 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def withState(s: Stg#State): Self =
     mapInternals(_.withState(s))
 
+  def mapState(f: Stg#State => Stg#State): Self =
+    mapInternals(_.withState(f(internals.state)))
+
   def isEmpty(inlet: Inlet[_]): Boolean =
     checkInletState(inlet)(_ == InletEmpty)
 
@@ -109,6 +114,24 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
   def isPulled(inlet: Inlet[_]): Boolean =
     checkInletState(inlet)(_ == InletPulled)
+
+  def isFailed(inlet: Inlet[_]): Boolean =
+    checkInletState(inlet)(_.isInstanceOf[InletFailed])
+
+  def failureOption(inlet: Inlet[_]): Option[Throwable] =
+    internals.mapFoldInlet(inlet, {
+        case asIs @ InletFailed(reason) => (Some(reason), asIs)
+        case asIs => (None, asIs)
+      })._1
+
+
+  def isCompleted(inlet: Inlet[_]): Boolean =
+    checkInletState(inlet)(_ == InletCompleted)
+
+  def isClosed(inlet: Inlet[_]): Boolean =
+    isCompleted(inlet) || isFailed(inlet)
+
+
 
   def isFlushed(outlet: Outlet[_]): Boolean =
     checkOutletState(outlet)(_ == OutletFlushed)
@@ -124,7 +147,6 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
   def isFailed(outlet: Outlet[_]): Boolean =
     checkOutletState(outlet)(_.isInstanceOf[OutletFailed])
-
 
   def stageActorRefOption: Option[ActorRef] =
     Try(stageActorRef).toOption
@@ -220,9 +242,9 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   private def mapFoldInlet[T](key: Inlet[_])(f: PartialFunction[InletState, (T, InletState)]): (T, Self) =
     mapFoldInternals(_.mapFoldInlet(key, f))
 
-  private def mapFoldOutlet[T](key: Outlet[_])(f: PartialFunction[OutletState, (T, OutletState)]): (T, Self) = {
+  private def mapFoldOutlet[T](key: Outlet[_])(f: PartialFunction[OutletState, (T, OutletState)]): (T, Self) =
     mapFoldInternals(_.mapFoldOutlet(key, f))
-  }
+
 
 
   private def checkInletState(key: Inlet[_])(f: InletState => Boolean): Boolean =
