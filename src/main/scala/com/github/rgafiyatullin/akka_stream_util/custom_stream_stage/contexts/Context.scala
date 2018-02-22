@@ -3,9 +3,9 @@ package com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts
 import java.util.NoSuchElementException
 
 import akka.NotUsed
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem, Scheduler}
 import akka.event.LoggingAdapter
-import akka.stream.{Inlet, Outlet, Shape}
+import akka.stream.{ActorMaterializer, Inlet, Outlet, Shape}
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts.Context._
 
@@ -224,6 +224,20 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
   def log: LoggingAdapter =
     internals.graphStageLogic.log
+
+  def systemOption: Option[ActorSystem] =
+    internals.graphStageLogic.materializer match {
+      case am: ActorMaterializer =>
+        Some(am.system)
+      case _ =>
+        None
+    }
+
+  def system: ActorSystem = systemOption.get
+
+  def schedulerOption: Option[Scheduler] = systemOption.map(_.scheduler)
+
+  def scheduler: Scheduler = schedulerOption.get
 
   def executionContext: ExecutionContext =
     internals.graphStageLogic.materializer.executionContext
