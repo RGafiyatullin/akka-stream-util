@@ -242,6 +242,22 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
   def executionContext: ExecutionContext =
     internals.graphStageLogic.materializer.executionContext
 
+
+  def condPull(inlet: Inlet[_], outlet: Outlet[_]): Self =
+    if (isAvailable(outlet)) pull(inlet)
+    else withInternals(internals) // can't use `this` here
+
+  def ifPush[Item, OtherCtx <: Context[OtherCtx, Stg]]
+    (outlet: Outlet[Item], item: Item)
+    (ifPushed: Self => OtherCtx)
+    (ifNot: Self => OtherCtx)
+  : OtherCtx =
+    if (isAvailable(outlet)) ifPushed(push(outlet, item))
+    else ifNot(withInternals(internals)) // can't use `this` here
+
+
+
+
   def internals: Context.Internals[Stg]
   def withInternals(i: Context.Internals[Stg]): Self
 
