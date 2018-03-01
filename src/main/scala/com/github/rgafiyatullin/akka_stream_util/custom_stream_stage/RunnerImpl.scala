@@ -4,6 +4,9 @@ import akka.stream.Attributes
 import akka.stream.stage._
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts._
 
+import scala.util.Try
+import scala.util.control.NonFatal
+
 private object RunnerImpl {
   final class Logic[Stg <: Stage[Stg]](stage: Stg, inheritedAttributes: Attributes)
     extends TimerGraphStageLogic(stage.shape)
@@ -18,13 +21,15 @@ private object RunnerImpl {
     def initializeStageActor(): Unit = {
       val _ = getStageActor {
         case (sender, message) =>
-          val ctxIn = ReceiveContext.create(sender, message, currentContextInternals)
-          val ctxOut = currentContextInternals.state.receive(ctxIn)
+          applyContext { internals =>
+            val ctxIn = ReceiveContext.create(sender, message, internals)
+            val ctxOut = internals.state.receive(ctxIn)
 
-          if (!ctxOut.isHandled)
-            log.warning("Unhandled inbound message {} from {}", message, sender)
+            if (!ctxOut.isHandled)
+              log.warning("Unhandled inbound message {} from {}", message, sender)
 
-          applyContext(ctxOut)
+            ctxOut
+          }
       }
     }
 
@@ -72,6 +77,12 @@ private object RunnerImpl {
         case (None, false) => ()
 
         case (Some(reason), _) =>
+          currentContextInternals =
+            Try(
+              currentContextInternals.state.onStageFailure(
+                StageFailedContext.create(currentContextInternals, reason))
+                .internals)
+              .getOrElse(currentContextInternals)
           failStage(reason)
 
         case (_, true) =>
@@ -80,54 +91,64 @@ private object RunnerImpl {
     }
 
 
-    def applyContext(ctx: Context[_, Stg]): Unit = {
-      ctx.onApply()
-      applyContextInternals(ctx.internals)
+    def applyContext[Ctx <: Context[Ctx, Stg]](process: Context.Internals[Stg] => Ctx): Unit = {
+      val ctxInternalsTried = Try {
+        val ctx = process(currentContextInternals)
+        ctx.onApply()
+        ctx.internals
+      } recover {
+        case NonFatal(reason) =>
+          currentContextInternals.failStage(reason)
+      }
+
+      applyContextInternals(ctxInternalsTried.get)
     }
 
     override def preStart(): Unit = {
       if (currentContextInternals.state.receiveEnabled)
         initializeStageActor()
 
-      applyContext(
-        currentContextInternals.state.preStart(
-          PreStartContext.create(currentContextInternals)))
+      applyContext(internals =>
+        internals.state.preStart(
+          PreStartContext.create(internals)))
     }
 
+
+
     override def postStop(): Unit =
-      applyContext(
-        currentContextInternals.state.postStop(
-          PostStopContext.create(currentContextInternals)))
+      applyContext(internals =>
+        internals.state.postStop(
+          PostStopContext.create(internals)))
 
     for (inlet <- stage.shape.inlets)
       setHandler(inlet, new InHandler {
         override def onPush(): Unit =
-          applyContext(
-            currentContextInternals.state.inletOnPush(
-              InletPushedContext.create(inlet, grab(inlet), currentContextInternals)))
+          applyContext(internals =>
+            internals.state.inletOnPush(
+              InletPushedContext.create(inlet, grab(inlet), internals)))
 
         override def onUpstreamFinish(): Unit =
-          applyContext(
-            currentContextInternals.state.inletOnUpstreamFinish(
-              InletFinishedContext.create(inlet, currentContextInternals)))
+          applyContext(internals =>
+            internals.state.inletOnUpstreamFinish(
+              InletFinishedContext.create(inlet, internals)))
 
         override def onUpstreamFailure(reason: Throwable): Unit =
-          applyContext(
-            currentContextInternals.state.inletOnUpstreamFailure(
-              InletFailedContext.create(inlet, reason, currentContextInternals)))
+          applyContext(internals =>
+            internals.state.inletOnUpstreamFailure(
+              InletFailedContext.create(inlet, reason, internals)))
       })
 
     for (outlet <- stage.shape.outlets)
       setHandler(outlet, new OutHandler {
         override def onDownstreamFinish(): Unit =
-          applyContext(
-            currentContextInternals.state.outletOnDownstreamFinish(
-              OutletFinishedContext.create(outlet, currentContextInternals)))
+          applyContext(internals =>
+            internals.state.outletOnDownstreamFinish(
+              OutletFinishedContext.create(outlet, internals)))
 
         override def onPull(): Unit =
-          applyContext(
-            currentContextInternals.state.outletOnPull(
-              OutletPulledContext.create(outlet, currentContextInternals)))
+          applyContext(internals =>
+            internals.state.outletOnPull(
+              OutletPulledContext.create(outlet, internals)))
       })
   }
 }

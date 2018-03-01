@@ -2,7 +2,7 @@ name := "akka-stream-util"
 
 organization := "com.github.rgafiyatullin"
 
-version := "0.2.1.1"
+version := "0.2.2.0"
 
 publishTo := {
   Some("releases"  at "https://artifactory.wgdp.io:443/xmppcs-maven-releases/")
