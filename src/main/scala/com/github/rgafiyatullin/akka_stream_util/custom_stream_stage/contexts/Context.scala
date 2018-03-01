@@ -244,7 +244,7 @@ trait Context[+Self <: Context[Self, Stg], Stg <: Stage[Stg]] {
 
 
   def condPull(inlet: Inlet[_], outlet: Outlet[_]): Self =
-    if (isAvailable(outlet)) pull(inlet)
+    if (isAvailable(outlet) && isEmpty(inlet)) pull(inlet)
     else withInternals(internals) // can't use `this` here
 
   def ifPush[Item, OtherCtx <: Context[OtherCtx, Stg]]
