@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 
 final class SwitchInTest extends TestBase {
   "alt-merge" should "work as identity flow if has a single output" in
-    withMaterializer { implicit mat =>
+    unit(withMaterializer { implicit mat =>
       implicit val ec: ExecutionContext = mat.executionContext
       implicit val askTimeout: Timeout = 10.millis
       futureOk {
@@ -49,10 +49,10 @@ final class SwitchInTest extends TestBase {
         }
           yield Done
       }
-    }
+    })
 
   it should "consume elements from the specified inlet" in
-    withMaterializer { implicit mat =>
+    unit(withMaterializer { implicit mat =>
       implicit val ec: ExecutionContext = mat.executionContext
       implicit val askTimeout: Timeout = 10.millis
       futureOk {
@@ -103,5 +103,5 @@ final class SwitchInTest extends TestBase {
         }
           yield Done
       }
-    }
+    })
 }

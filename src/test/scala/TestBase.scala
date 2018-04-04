@@ -32,4 +32,6 @@ trait TestBase extends FlatSpec with Matchers with ScalaFutures {
     val _ = Await.result(f, futureWaitTimeout)
     f
   }
+
+  def unit(anything: Any): Unit = ()
 }

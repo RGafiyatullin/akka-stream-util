@@ -105,7 +105,7 @@ object CountedIdentityFlowTest {
 
 final class CountedIdentityFlowTest extends TestBase {
   "CountedIdentityFlow" should "provide runtime access to the stage's state" in
-    withMaterializer { implicit mat =>
+    unit(withMaterializer { implicit mat =>
       futureOk {
         implicit val timeout: Timeout = 1.second
         implicit val ec: ExecutionContext = mat.executionContext
@@ -138,5 +138,5 @@ final class CountedIdentityFlowTest extends TestBase {
         }
           yield ()
       }
-    }
+    })
 }

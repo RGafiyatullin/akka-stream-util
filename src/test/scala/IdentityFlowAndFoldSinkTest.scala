@@ -127,10 +127,10 @@ final class IdentityFlowAndFoldSinkTest extends TestBase {
 
 
   "identity-flow stage" should "work if defined as Flow.fromFunction(identity[Int])" in
-    checkIdentityStage(Flow.fromFunction(identity[Int]))
+    unit(checkIdentityStage(Flow.fromFunction(identity[Int])))
 
   it should "work if defined as Flow.fromGraph(new GraphStage[...]{ ... })" in
-    checkIdentityStage(Flow.fromGraph(new GraphStage[FlowShape[Int, Int]] {
+    unit(checkIdentityStage(Flow.fromGraph(new GraphStage[FlowShape[Int, Int]] {
       val inlet: Inlet[Int] = Inlet("AdHoc.In")
       val outlet: Outlet[Int] = Outlet("AdHoc.Out")
 
@@ -148,17 +148,17 @@ final class IdentityFlowAndFoldSinkTest extends TestBase {
       override def shape: FlowShape[Int, Int] =
         FlowShape.of(inlet, outlet)
 
-    }))
+    })))
 
   it should "work if defined as Flow.fromGraph(new Playground.IdentityStage[Int].toGraph)" in
-    checkIdentityStage(Flow.fromGraph(new IdentityFlowAndFoldSinkTest.IdentityStage[Int].toGraph))
+    unit(checkIdentityStage(Flow.fromGraph(new IdentityFlowAndFoldSinkTest.IdentityStage[Int].toGraph)))
 
 
   "fold-sink stage" should "work if defined as Sink.fold(0)(_ + _)" in
-    checkFoldStage(Sink.fold[Int, Int](0)(_ + _))
+    unit(checkFoldStage(Sink.fold[Int, Int](0)(_ + _)))
 
   it should "work if defined as Sink.fromGraph(new GraphStage[...]{...}" in
-    checkFoldStage(Sink.fromGraph(new GraphStageWithMaterializedValue[SinkShape[Int], Future[Int]] {
+    unit(checkFoldStage(Sink.fromGraph(new GraphStageWithMaterializedValue[SinkShape[Int], Future[Int]] {
       val inlet: Inlet[Int] = Inlet("AdHoc.In")
       override def shape: SinkShape[Int] = SinkShape.of(inlet)
 
@@ -191,8 +191,8 @@ final class IdentityFlowAndFoldSinkTest extends TestBase {
         }
         (logic, resultPromise.future)
       }
-    }))
+    })))
 
   it should "work if defined as Sink.fromGraph(new Playground.FoldStage[Int, Int](0, _ + _).toGraph)" in
-    checkFoldStage(Sink.fromGraph(new IdentityFlowAndFoldSinkTest.FoldStage[Int, Int](0, _ + _).toGraph))
+    unit(checkFoldStage(Sink.fromGraph(new IdentityFlowAndFoldSinkTest.FoldStage[Int, Int](0, _ + _).toGraph)))
 }

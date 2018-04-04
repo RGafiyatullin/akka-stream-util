@@ -74,7 +74,7 @@ object IdenittyFlowWithFailurePredicate {
 
 final class IdenittyFlowWithFailurePredicate extends TestBase {
   "IFWFP" should "work as identity flow when `f(item) = None`" in
-    withMaterializer { mat =>
+    unit(withMaterializer { mat =>
       futureOk {
         Source((1 to 10).toList)
           .via(IdenittyFlowWithFailurePredicate.IFWFPStage[Int](_ => None).toGraph)
@@ -82,10 +82,10 @@ final class IdenittyFlowWithFailurePredicate extends TestBase {
           .run()(mat)
           .map(_ should be ((1 to 10).toList))(mat.executionContext)
       }
-    }
+    })
 
   it should "pass all elements before failure and then fail" in
-    withMaterializer { mat =>
+    unit(withMaterializer { mat =>
       futureOk {
         implicit val ec: ExecutionContext = mat.executionContext
         val snkQ =
@@ -103,5 +103,5 @@ final class IdenittyFlowWithFailurePredicate extends TestBase {
         }
           yield ()
       }
-    }
+    })
 }

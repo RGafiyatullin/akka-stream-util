@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 
 final class SwitchOutTest extends TestBase {
   "AltCast" should "work as identity flow in case of a single outlet" in
-    withMaterializer { implicit mat =>
+    unit(withMaterializer { implicit mat =>
       implicit val ec: ExecutionContext = mat.executionContext
       implicit val askTimeout: Timeout = 10.millis
 
@@ -50,10 +50,10 @@ final class SwitchOutTest extends TestBase {
         }
           yield Done
       }
-    }
+    })
 
   it should "route items to the specified outlets" in
-    withMaterializer { implicit mat =>
+    unit(withMaterializer { implicit mat =>
       implicit val ec: ExecutionContext = mat.executionContext
       implicit val askTimeout: Timeout = 10.millis
 
@@ -97,5 +97,5 @@ final class SwitchOutTest extends TestBase {
         }
           yield Done
       }
-    }
+    })
 }
