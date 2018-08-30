@@ -1,3 +1,5 @@
+package tests
+
 import akka.NotUsed
 import akka.stream._
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}

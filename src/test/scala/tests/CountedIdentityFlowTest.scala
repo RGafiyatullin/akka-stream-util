@@ -1,5 +1,6 @@
+package tests
 
-import akka.Done
+
 import akka.actor.{ActorRef, Status}
 import akka.stream._
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
@@ -7,8 +8,8 @@ import akka.util.Timeout
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts.{InletPushedContext, OutletPulledContext, PreStartContext, ReceiveContext}
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object CountedIdentityFlowTest {
 

@@ -1,6 +1,8 @@
+package tests
+
 import akka.Done
-import akka.stream.{ClosedShape, OverflowStrategy, QueueOfferResult}
 import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
+import akka.stream.{ClosedShape, OverflowStrategy, QueueOfferResult}
 import akka.util.Timeout
 import com.github.rgafiyatullin.akka_stream_util.stages.SwitchOut
 

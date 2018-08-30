@@ -1,11 +1,13 @@
+package tests
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Milliseconds, Span}
+import org.scalatest.{FlatSpec, Matchers}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 trait TestBase extends FlatSpec with Matchers with ScalaFutures {
   override implicit def patienceConfig: PatienceConfig =
