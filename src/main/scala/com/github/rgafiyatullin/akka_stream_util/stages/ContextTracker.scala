@@ -4,8 +4,7 @@ import akka.NotUsed
 import akka.stream.Attributes.Attribute
 import akka.stream.{Attributes, Inlet, Outlet, Shape}
 import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.Stage
-import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts.{InletPushedContext, OutletPulledContext, PreStartContext, ReceiveContext}
-
+import com.github.rgafiyatullin.akka_stream_util.custom_stream_stage.contexts._
 
 import scala.collection.immutable
 import scala.concurrent.duration._
@@ -130,6 +129,22 @@ object ContextTracker {
               ctxDropped
                 .push(ports.outlet, (response, context))
           }
+      }
+
+    override def inletOnUpstreamFinish
+      (ctx: InletFinishedContext[ContextTracker[ID, Context, Response]])
+    : InletFinishedContext[ContextTracker[ID, Context, Response]] =
+      ctx.inlet match {
+        case ports.responseInlet => ctx.completeStage()
+        case ports.contextInlet => ctx
+      }
+
+    override def inletOnUpstreamFailure
+      (ctx: InletFailedContext[ContextTracker[ID, Context, Response]])
+    : InletFailedContext[ContextTracker[ID, Context, Response]] =
+      ctx.inlet match {
+        case ports.responseInlet => ctx.failStage(ctx.reason)
+        case ports.contextInlet => ctx
       }
   }
 
