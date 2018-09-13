@@ -119,7 +119,11 @@ object ContextTracker {
 
         case ports.responseInlet =>
           val (id, response) = ctx.peek(ports.responseInlet)
-          val ctxDropped = ctx.drop(ports.responseInlet)
+          val stateNext = dropContext(id)
+          val ctxDropped =
+            ctx
+              .drop(ports.responseInlet)
+              .withState(stateNext)
           getContext(id) match {
             case None =>
               ctxDropped.log.warning("Cannot recover context for ID: {} [response: {}]", id, response)
@@ -147,7 +151,6 @@ object ContextTracker {
         case ports.contextInlet => ctx
       }
   }
-
 }
 
 final case class ContextTracker[ID, Context, Response]()
